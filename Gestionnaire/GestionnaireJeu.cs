@@ -11,12 +11,13 @@ public class GestionnaireJeu : IGestionnaireJeu
         Jeu = new Jeu();
     }
 
-    public void RejoindrePartie(string nomDuJoueur)
+    public void RejoindrePartie(string nomDuJoueur, string identifiant)
     {
         // Initialise le joueur
         var joueur = new Joueur
         {
             Nom = nomDuJoueur,
+            Identifiant = identifiant,
             OrdreDeJeu = Jeu.Joueurs.Count() + 1 // nombre de joueurs + 1
         };
 

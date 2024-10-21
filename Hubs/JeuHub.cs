@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using punto_server.Models;
+using punto_server.Models.Dto;
 using punto_server.Services;
 
 namespace punto_server.Hubs;
@@ -24,7 +25,7 @@ public class JeuHub : Hub
         }
         
         // Permet au joueur de rejoindre la partie
-        _gestionnaireJeu.RejoindrePartie(joueur);
+        _gestionnaireJeu.RejoindrePartie(joueur, Context.ConnectionId);
 
         // Diffuse que le joueur a rejoint la partie
         await Clients.All.SendAsync("RejoindrePartie", joueur);
@@ -34,6 +35,9 @@ public class JeuHub : Hub
         if (jeu.EtatJeu == EtatJeu.EnCours)
         {
             // Diffuse que la partie commence
+            await Clients.All.SendAsync("CommencerPartie", jeu.Joueurs.OrderBy(j => j.OrdreDeJeu).ToList());
+
+            // Commence le tour
             var joueurQuiDebute = jeu.Joueurs
                 .FirstOrDefault(j => j.OrdreDeJeu == 2); // On commence avec le joueur 2 car le joueur 1 place déjà une carte au centre d'après la règle
 
@@ -45,7 +49,7 @@ public class JeuHub : Hub
 
             await Clients.All.SendAsync("CommencerTour", joueurQuiDebute.Nom);            
             await Clients.Caller.SendAsync("MettreAJourTuilesEnMain", joueurQuiDebute.TuilesDansLaMain); // ex: 3;6
-            await Clients.All.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(jeu.Plateau.ObtenirTuilesPlaceesSansDetails())); // json des tuiles placées
+            await Clients.All.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees)); // json des tuiles placées
         }
     }
 
@@ -75,12 +79,13 @@ public class JeuHub : Hub
         var joueur = jeu.Joueurs.First(j => j.Nom == nomDuJoueur);
         var tuilesEnMain = joueur.TuilesDansLaMain;
         await Clients.Caller.SendAsync("MettreAJourTuilesEnMain", tuilesEnMain);
-        var jsonPlateau = JsonConvert.SerializeObject(jeu.Plateau.ObtenirTuilesPlaceesSansDetails());
+        var jsonPlateau = JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees);
         await Clients.All.SendAsync("MettreAJourPlateau", jsonPlateau); // json des tuiles placées
 
         // Diffuser le tour suivant
         var joueurQuiDoitJouer = jeu.AuTourDuJoueur;
         await Clients.All.SendAsync("CommencerTour", joueurQuiDoitJouer.Nom);
+        await Clients.Client(joueurQuiDoitJouer.Identifiant).SendAsync("MettreAJourTuilesEnMain", joueurQuiDoitJouer.TuilesDansLaMain);
     }
 
     public override async Task OnDisconnectedAsync(Exception exception)
