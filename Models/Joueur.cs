@@ -1,11 +1,19 @@
-﻿namespace punto_server.Models;
+﻿using Newtonsoft.Json;
+
+namespace punto_server.Models;
 
 public class Joueur
 {
     public int OrdreDeJeu { get; set; }
+
     public string Nom { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public List<int> TuilesDansLaMain { get; set; } = new List<int>();
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public List<int> TuilesDansLeJeu { get; set; } = CreerTuilesPourJoueur();
+
     public int Penalite { get; set; } = 0;
 
     public static List<int> CreerTuilesPourJoueur()

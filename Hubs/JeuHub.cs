@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Newtonsoft.Json;
 using punto_server.Models;
 using punto_server.Services;
 
@@ -45,6 +46,7 @@ public class JeuHub : Hub
 
             await Clients.All.SendAsync("CommencerTour", joueurQuiDebute.Nom);            
             await Clients.Caller.SendAsync("MettreAJourTuilesEnMain", joueurQuiDebute.TuilesDansLaMain); // ex: 3;6
+            await Clients.All.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(jeu.Plateau.ObtenirTuilesPlaceesSansDetails())); // json des tuiles placées
         }
     }
 
@@ -74,6 +76,8 @@ public class JeuHub : Hub
         var joueur = jeu.Equipes.SelectMany(e => e.Joueur).First(j => j.Nom == nomDuJoueur);
         var tuilesEnMain = joueur.TuilesDansLaMain;
         await Clients.Caller.SendAsync("MettreAJourTuilesEnMain", tuilesEnMain);
+        var jsonPlateau = JsonConvert.SerializeObject(jeu.Plateau.ObtenirTuilesPlaceesSansDetails());
+        await Clients.All.SendAsync("MettreAJourPlateau", jsonPlateau); // json des tuiles placées
 
         // Diffuser le tour suivant
         var joueurQuiDoitJouer = jeu.AuTourDuJoueur;
