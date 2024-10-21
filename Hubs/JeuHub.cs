@@ -16,8 +16,12 @@ public class JeuHub : Hub
 
     public async Task RejoindrePartie(string joueur)
     {
-        // Crée le jeu
-        _gestionnaireJeu.DemarrerUnJeu();
+        // Crée le jeu si aucune partie en cours
+        var jeu = _gestionnaireJeu.ObtenirJeu();
+        if (jeu == null)
+        {
+            _gestionnaireJeu.DemarrerUnJeu();
+        }
         
         // Permet au joueur de rejoindre la partie
         _gestionnaireJeu.RejoindrePartie(joueur);
@@ -26,7 +30,7 @@ public class JeuHub : Hub
         await Clients.All.SendAsync("RejoindrePartie", joueur);
 
         // Récupère la variable mise à jour
-        var jeu = _gestionnaireJeu.ObtenirJeu();
+        _gestionnaireJeu.ObtenirJeu();
         if (jeu.EtatJeu == EtatJeu.EnCours)
         {
             // Diffuse que la partie commence

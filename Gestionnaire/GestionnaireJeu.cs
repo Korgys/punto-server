@@ -4,7 +4,7 @@ namespace punto_server.Services;
 
 public class GestionnaireJeu : IGestionnaireJeu
 {
-    public Jeu Jeu { get; set; } = new Jeu();
+    public Jeu Jeu { get; set; }
     public Jeu ObtenirJeu() => Jeu;
     public void DemarrerUnJeu()
     {
