@@ -12,12 +12,12 @@ builder.Services.AddSingleton<IGestionnaireJeu, GestionnaireJeu>();
 var app = builder.Build();
 
 // Configure les routes pour le Hub SignalR
-app.MapHub<JeuHub>("/gameHub");
+app.MapHub<JeuHub>("/punto");
 
 // Affiche un message personnalisé lorsque le serveur démarrera
 app.Lifetime.ApplicationStarted.Register(() =>
 {
-    Console.WriteLine("Serveur démarré, en attente de joueurs sur http://localhost:5000/gameHub");
+    Console.WriteLine("Serveur démarré, en attente de joueurs sur http://localhost:5000/punto");
 });
 
 // Lance le serveur
