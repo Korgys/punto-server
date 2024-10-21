@@ -2,7 +2,7 @@
 
 namespace punto_server.Services;
 
-public interface IJeuService
+public interface IGestionnaireJeu
 {
     Jeu ObtenirJeu();
     void DemarrerUnJeu();

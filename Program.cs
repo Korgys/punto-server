@@ -1,9 +1,13 @@
 using punto_server.Hubs;
+using punto_server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Ajoute SignalR aux services
 builder.Services.AddSignalR();
+
+// Enregistre l'implémentation de IGestionnaireJeu pour l'injection de dépendances
+builder.Services.AddSingleton<IGestionnaireJeu, GestionnaireJeu>();
 
 var app = builder.Build();
 

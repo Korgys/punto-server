@@ -2,7 +2,7 @@
 
 namespace punto_server.Services;
 
-public class JeuService : IJeuService
+public class GestionnaireJeu : IGestionnaireJeu
 {
     public Jeu Jeu { get; set; }
     public Jeu ObtenirJeu() => Jeu;
@@ -43,7 +43,7 @@ public class JeuService : IJeuService
                 PositionY = 0
             };
             Jeu.Plateau.TuilesPlacees.Add(tuileCentre);
-            Console.WriteLine($"La première tuile ({tuileCentre}) de {joueur.Nom} a été placée au centre du plateau ({tuileCentre.PositionX},{tuileCentre.PositionY}).");
+            Console.WriteLine($"La première tuile ({tuileCentre.Valeur}) de {joueur.Nom} a été placée au centre du plateau ({tuileCentre.PositionX},{tuileCentre.PositionY}).");
         }
 
         // Pioche 2 tuiles pour le joueur
@@ -80,7 +80,7 @@ public class JeuService : IJeuService
         if (joueur != null && !coupAutorise)
         {
             joueur.Penalite++;
-            Console.WriteLine($"Le joueur {joueur.Nom} reçoit une pénalité pour coup non-autorisé.")
+            Console.WriteLine($"Le joueur {joueur.Nom} reçoit une pénalité pour coup non-autorisé.");
         }
 
         return coupAutorise;

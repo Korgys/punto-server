@@ -6,16 +6,16 @@ namespace punto_server.Hubs;
 
 public class JeuHub : Hub
 {
-    public IJeuService _jeuService { get; set; }
+    public IGestionnaireJeu _jeuService { get; set; }
 
-    public JeuHub(IJeuService jeuService) 
+    public JeuHub(IGestionnaireJeu jeuService)
     {
         _jeuService = jeuService;
     }
 
     public async Task RejoindrePartie(string joueur, string? equipe = null)
     {
-        // Créé le jeu
+        // Crée le jeu
         var jeu = _jeuService.ObtenirJeu();
         if (jeu == null)
         {
@@ -35,37 +35,48 @@ public class JeuHub : Hub
             // Diffuse que la partie commence
             var joueurQuiDebute = jeu.Equipes
                 .SelectMany(e => e.Joueur)
-                .FirstOrDefault(j => j.OrdreDeJeu == 2);
-            var tuile = jeu.Plateau.TuilesPlacees.First();
-            await Clients.All.SendAsync("JouerTuile", tuile.Proprietaire.Nom, tuile.PositionX, tuile.PositionY, tuile.Valeur);
-            await Clients.All.SendAsync("CommencerTour", joueurQuiDebute);
+                .FirstOrDefault(j => j.OrdreDeJeu == 2); // On commence avec le joueur 2 car le joueur 1 place déjà une carte au centre d'après la règle
+
+            var tuile = jeu.Plateau.TuilesPlacees.FirstOrDefault();
+            if (tuile != null)
+            {
+                await Clients.All.SendAsync("JouerTuile", tuile.Proprietaire.Nom, tuile.PositionX, tuile.PositionY, tuile.Valeur);
+            }
+
+            await Clients.All.SendAsync("CommencerTour", joueurQuiDebute.Nom);            
+            await Clients.Caller.SendAsync("MettreAJourTuilesEnMain", joueurQuiDebute.TuilesDansLaMain); // ex: 3;6
         }
     }
 
-    public async Task JouerTuile(string joueur, int x, int y, int valeur)
+    public async Task JouerTuile(string nomDuJoueur, int x, int y, int valeur)
     {
-        if(!_jeuService.PeutJouerTuile(joueur, x, y, valeur))
+        // Vérifier si le joueur peut jouer cette tuile
+        if (!_jeuService.PeutJouerTuile(nomDuJoueur, x, y, valeur))
         {
-            // TODO: Envoye au joueur un coup non-autorisé
+            // Envoie un message d'erreur au joueur indiquant que le coup n'est pas autorisé
+            await Clients.Caller.SendAsync("ErreurCoupNonAutorise", "Coup non autorisé.");
             return;
         }
 
-        var jeu = _jeuService.JouerTuile(joueur, x, y, valeur);
+        // Le joueur joue la tuile
+        var jeu = _jeuService.JouerTuile(nomDuJoueur, x, y, valeur);
         var tuile = jeu.Plateau.TuilesPlacees.Last(); // Dernière tuile placée
-        await Clients.All.SendAsync("JouerTuile", joueur, x, y, valeur);
+        await Clients.All.SendAsync("JouerTuile", nomDuJoueur, x, y, valeur);
 
-        // En cas de victoire
+        // Vérifier si la partie est terminée
         if (jeu.EtatJeu == EtatJeu.Termine)
         {
-            await Clients.All.SendAsync("TerminerJeu", jeu.Vainqueur.Nom);
+            await Clients.All.SendAsync("TerminerJeu", jeu.Vainqueur?.Nom ?? "Inconnu");
+            return;
         }
 
-        // TODO : Communique la tuile piochée uniquement au joueur appelant
-        var tuilePiochee = 
+        // Envoie les tuiles en main uniquement au joueur appelant (joueur qui vient de jouer)
+        var joueur = jeu.Equipes.SelectMany(e => e.Joueur).First(j => j.Nom == nomDuJoueur);
+        var tuilesEnMain = joueur.TuilesDansLaMain;
+        await Clients.Caller.SendAsync("MettreAJourTuilesEnMain", tuilesEnMain);
 
+        // Diffuser le tour suivant
         var joueurQuiDoitJouer = jeu.AuTourDuJoueur;
-        // Diffuse la tuile jouée à tous les clients connectés
         await Clients.All.SendAsync("CommencerTour", joueurQuiDoitJouer.Nom);
     }
 }
-
