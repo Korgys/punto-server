@@ -6,6 +6,9 @@ public class Joueur
 {
     public int OrdreDeJeu { get; set; }
 
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string Identifiant { get; set; }
+
     public string Nom { get; set; }
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]

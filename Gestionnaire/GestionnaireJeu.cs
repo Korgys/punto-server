@@ -4,31 +4,20 @@ namespace punto_server.Services;
 
 public class GestionnaireJeu : IGestionnaireJeu
 {
-    public Jeu Jeu { get; set; }
+    public Jeu Jeu { get; set; } = new Jeu();
     public Jeu ObtenirJeu() => Jeu;
     public void DemarrerUnJeu()
     {
         Jeu = new Jeu();
     }
 
-    public void RejoindrePartie(string nomDuJoueur, string? nomEquipe)
+    public void RejoindrePartie(string nomDuJoueur)
     {
-        // Si pas d'équipe, l'équipe prend le nom du joueur
-        if (nomEquipe == null) nomEquipe = nomDuJoueur;
-
-        // Cherche l'équipe du joueur
-        var equipe = Jeu.Equipes.FirstOrDefault(e => e.Nom == nomEquipe);
-        if (equipe == null)
-        {
-            equipe = new Equipe { Nom = nomEquipe, Joueur = new List<Joueur>() };
-            Jeu.Equipes.Add(equipe);
-        }
-
         // Initialise le joueur
         var joueur = new Joueur
         {
             Nom = nomDuJoueur,
-            OrdreDeJeu = Jeu.Equipes.Sum(e => e.Joueur.Count) + 1 // nombre de joueurs + 1
+            OrdreDeJeu = Jeu.Joueurs.Count() + 1 // nombre de joueurs + 1
         };
 
         // Si c'est le 1er joueur, on tire une tuile et on la place au centre du plateau
@@ -51,20 +40,29 @@ public class GestionnaireJeu : IGestionnaireJeu
         joueur.TuilesDansLaMain.Add(PiocherTuilePourJoueur(joueur));
         Console.WriteLine($"{joueur.Nom} pioche 2 tuiles.");
 
-        equipe.Joueur.Add(joueur);
+        Jeu.Joueurs.Add(joueur);
 
         // Lancement de la partie si nombre max de joueurs atteint
         if (joueur.OrdreDeJeu == Jeu.NombreMaxDeJoueurs)
         {
             Jeu.EtatJeu = EtatJeu.EnCours;
-            Jeu.AuTourDuJoueur = Jeu.Equipes.SelectMany(e => e.Joueur).FirstOrDefault(j => j.OrdreDeJeu == 2);
+            Jeu.AuTourDuJoueur = Jeu.Joueurs.FirstOrDefault(j => j.OrdreDeJeu == 2);
+        }
+    }
+
+    public void GererDeconnexion(string idJoueur)
+    {
+        var joueurDeconnecte = Jeu.Joueurs.FirstOrDefault(j => j.Identifiant == idJoueur);
+        if (joueurDeconnecte != null)
+        {
+            Jeu.Joueurs.Remove(joueurDeconnecte);
         }
     }
 
     public bool PeutJouerTuile(string nomDuJoueur, int x, int y, int valeur)
     {
         // Cherche le joueur en question
-        var joueur = Jeu.Equipes.SelectMany(e => e.Joueur).FirstOrDefault(j => j.Nom == nomDuJoueur);
+        var joueur = Jeu.Joueurs.FirstOrDefault(j => j.Nom == nomDuJoueur);
 
         // Conditions pour pouvoir jouer une tuile
         bool estAdjacent = Jeu.Plateau.TuilesPlacees.Any(t =>
@@ -81,6 +79,23 @@ public class GestionnaireJeu : IGestionnaireJeu
         {
             joueur.Penalite++;
             Console.WriteLine($"Le joueur {joueur.Nom} reçoit une pénalité pour coup non-autorisé.");
+
+            if (joueur.Penalite >= 3) // Disqualifie le joueur après 3 pénalités
+            {
+                Console.WriteLine($"Le joueur {joueur.Nom} a été disqualifié.");
+                Jeu.Joueurs.Remove(joueur);
+                if (Jeu.Joueurs.Count == 1) // Il reste un seul joueur : il est désigné comme vainqueur
+                {
+                    Jeu.EtatJeu = EtatJeu.Termine;
+                    Jeu.Vainqueur = Jeu.Joueurs.Last();
+                    Console.WriteLine($"{Jeu.Vainqueur.Nom} a gagné la partie !");
+                    return false;
+                }
+                else
+                {
+                    PasserAuJoueurSuivant();
+                }
+            }
         }
 
         return coupAutorise;
@@ -88,7 +103,7 @@ public class GestionnaireJeu : IGestionnaireJeu
 
     public Jeu JouerTuile(string nomDuJoueur, int x, int y, int valeur)
     {
-        var joueur = Jeu.Equipes.SelectMany(e => e.Joueur).FirstOrDefault(j => j.Nom == nomDuJoueur);
+        var joueur = Jeu.Joueurs.FirstOrDefault(j => j.Nom == nomDuJoueur);
 
         if (joueur != null && PeutJouerTuile(nomDuJoueur, x, y, valeur))
         {
@@ -138,7 +153,7 @@ public class GestionnaireJeu : IGestionnaireJeu
 
     private void PasserAuJoueurSuivant()
     {
-        var joueurs = Jeu.Equipes.SelectMany(e => e.Joueur).ToList();
+        var joueurs = Jeu.Joueurs.ToList();
         int indexActuel = joueurs.FindIndex(j => j.OrdreDeJeu == Jeu.AuTourDuJoueur.OrdreDeJeu);
         Jeu.AuTourDuJoueur = joueurs[(indexActuel + 1) % joueurs.Count];
     }

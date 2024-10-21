@@ -7,5 +7,5 @@ public class Jeu
     public Joueur AuTourDuJoueur { get; set; }
     public Joueur Vainqueur { get; set; }
     public Plateau Plateau { get; set; } = new Plateau();
-    public List<Equipe> Equipes { get; set; } = new List<Equipe>();
+    public List<Joueur> Joueurs { get; set; } = new List<Joueur>();
 }
