@@ -30,7 +30,7 @@ public class JeuHub : Hub
         await Clients.All.SendAsync("RejoindrePartie", joueur);
 
         // Récupère la variable mise à jour
-        _gestionnaireJeu.ObtenirJeu();
+        jeu = _gestionnaireJeu.ObtenirJeu();
         if (jeu.EtatJeu == EtatJeu.EnCours)
         {
             // Diffuse que la partie commence
