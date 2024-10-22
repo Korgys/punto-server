@@ -5,7 +5,9 @@ namespace punto_server.Services;
 public class GestionnaireJeu : IGestionnaireJeu
 {
     public Jeu Jeu { get; set; }
+
     public Jeu ObtenirJeu() => Jeu;
+
     public void DemarrerUnJeu()
     {
         Jeu = new Jeu();
@@ -18,7 +20,10 @@ public class GestionnaireJeu : IGestionnaireJeu
         {
             Nom = nomDuJoueur,
             Identifiant = identifiant,
-            OrdreDeJeu = Jeu.Joueurs.Count() + 1 // nombre de joueurs + 1
+            OrdreDeJeu =
+                Jeu.Joueurs.Count()
+                + 1 // nombre de joueurs + 1
+            ,
         };
 
         // Si c'est le 1er joueur, on tire une tuile et on la place au centre du plateau
@@ -30,10 +35,12 @@ public class GestionnaireJeu : IGestionnaireJeu
                 Valeur = valeurTuileCentre,
                 Proprietaire = joueur,
                 PositionX = 0,
-                PositionY = 0
+                PositionY = 0,
             };
             Jeu.Plateau.TuilesPlacees.Add(tuileCentre);
-            Console.WriteLine($"La première tuile ({tuileCentre.Valeur}) de {joueur.Nom} a été placée au centre du plateau ({tuileCentre.PositionX},{tuileCentre.PositionY}).");
+            Console.WriteLine(
+                $"La première tuile ({tuileCentre.Valeur}) de {joueur.Nom} a été placée au centre du plateau ({tuileCentre.PositionX},{tuileCentre.PositionY})."
+            );
         }
 
         // Pioche 2 tuiles pour le joueur
@@ -67,19 +74,23 @@ public class GestionnaireJeu : IGestionnaireJeu
 
         // Conditions pour pouvoir jouer une tuile
         bool estAdjacent = Jeu.Plateau.TuilesPlacees.Any(t =>
-            Math.Abs(t.PositionX - x) <= 1 && Math.Abs(t.PositionY - y) <= 1);
+            Math.Abs(t.PositionX - x) <= 1 && Math.Abs(t.PositionY - y) <= 1
+        );
 
-        var coupAutorise = Jeu.EtatJeu == EtatJeu.EnCours   // Partie en cours
-            && joueur != null                               // Etre un joueur de la partie
-            && joueur.OrdreDeJeu == Jeu.AuTourDuJoueur.OrdreDeJeu     // Etre le joueur à qui c'est le tour de jouer
-            && joueur.TuilesDansLaMain.Contains(valeur)     // Jouer une tuile de sa main
-            && estAdjacent;                                 // La tuile doit être adjacente à une tuile existante
+        var coupAutorise =
+            Jeu.EtatJeu == EtatJeu.EnCours // Partie en cours
+            && joueur != null // Etre un joueur de la partie
+            && joueur.OrdreDeJeu == Jeu.AuTourDuJoueur.OrdreDeJeu // Etre le joueur à qui c'est le tour de jouer
+            && joueur.TuilesDansLaMain.Contains(valeur) // Jouer une tuile de sa main
+            && estAdjacent; // La tuile doit être adjacente à une tuile existante
 
         // Ajoute une pénalité en cas de coup non-autorisé
         if (joueur != null && !coupAutorise)
         {
             joueur.Penalite++;
-            Console.WriteLine($"Le joueur {joueur.Nom} reçoit une pénalité pour coup non-autorisé.");
+            Console.WriteLine(
+                $"Le joueur {joueur.Nom} reçoit une pénalité pour coup non-autorisé."
+            );
 
             if (joueur.Penalite >= 3) // Disqualifie le joueur après 3 pénalités
             {
@@ -113,8 +124,16 @@ public class GestionnaireJeu : IGestionnaireJeu
                 Valeur = valeur,
                 Proprietaire = joueur,
                 PositionX = x,
-                PositionY = y
+                PositionY = y,
             };
+
+            // Si on recouvre une tuile, on la supprime
+            Tuile? tuileASupp = Jeu.Plateau.TuilesPlacees.FirstOrDefault(t =>
+                t.PositionX == x && t.PositionY == y
+            );
+            if (tuileASupp != null)
+                Jeu.Plateau.TuilesPlacees.Remove(tuileASupp);
+
             Jeu.Plateau.TuilesPlacees.Add(tuile);
 
             // Retirer la tuile de la main du joueur
@@ -144,7 +163,7 @@ public class GestionnaireJeu : IGestionnaireJeu
         var tuiles = joueur.TuilesDansLeJeu;
 
         // Si le joueur n'a plus de tuile, la partie se termine
-        if (tuiles.Count == 0) 
+        if (tuiles.Count == 0)
         {
             Jeu.EtatJeu = EtatJeu.Termine;
             return 0; // On pourrait également utiliser null. Signifie qu'il n'y a plus de tuile.
@@ -168,31 +187,40 @@ public class GestionnaireJeu : IGestionnaireJeu
     public bool VerifierAlignement(Joueur joueur)
     {
         // Récupère les tuiles du joueur
-        var tuilesJoueur = Jeu.Plateau.TuilesPlacees
-                            .Where(t => t.Proprietaire.Nom == joueur.Nom)
-                            .ToList();
+        var tuilesJoueur = Jeu
+            .Plateau.TuilesPlacees.Where(t => t.Proprietaire.Nom == joueur.Nom)
+            .ToList();
 
         // Parcourir chaque tuile du joueur pour vérifier les alignements
         foreach (var tuile in tuilesJoueur)
         {
             // Vérification horizontale
-            if (VerifierAlignementDirection(tuilesJoueur, tuile, 1, 0)) return true;
+            if (VerifierAlignementDirection(tuilesJoueur, tuile, 1, 0))
+                return true;
 
             // Vérification verticale
-            if (VerifierAlignementDirection(tuilesJoueur, tuile, 0, 1)) return true;
+            if (VerifierAlignementDirection(tuilesJoueur, tuile, 0, 1))
+                return true;
 
             // Vérification diagonale gauche-droite (bas-droite)
-            if (VerifierAlignementDirection(tuilesJoueur, tuile, 1, 1)) return true;
+            if (VerifierAlignementDirection(tuilesJoueur, tuile, 1, 1))
+                return true;
 
             // Vérification diagonale droite-gauche (bas-gauche)
-            if (VerifierAlignementDirection(tuilesJoueur, tuile, 1, -1)) return true;
+            if (VerifierAlignementDirection(tuilesJoueur, tuile, 1, -1))
+                return true;
         }
 
         return false; // Aucun alignement trouvé
     }
 
     // Cette méthode vérifie si 4 tuiles sont alignées dans une direction spécifique
-    private bool VerifierAlignementDirection(List<Tuile> tuilesJoueur, Tuile tuile, int deltaX, int deltaY)
+    private bool VerifierAlignementDirection(
+        List<Tuile> tuilesJoueur,
+        Tuile tuile,
+        int deltaX,
+        int deltaY
+    )
     {
         int count = 1; // Compte la tuile actuelle
 
@@ -200,8 +228,9 @@ public class GestionnaireJeu : IGestionnaireJeu
         for (int i = 1; i < 4; i++)
         {
             var tuileSuivante = tuilesJoueur.FirstOrDefault(t =>
-                t.PositionX == tuile.PositionX + i * deltaX &&
-                t.PositionY == tuile.PositionY + i * deltaY);
+                t.PositionX == tuile.PositionX + i * deltaX
+                && t.PositionY == tuile.PositionY + i * deltaY
+            );
             if (tuileSuivante != null)
             {
                 count++;
@@ -216,8 +245,9 @@ public class GestionnaireJeu : IGestionnaireJeu
         for (int i = 1; i < 4; i++)
         {
             var tuilePrecedente = tuilesJoueur.FirstOrDefault(t =>
-                t.PositionX == tuile.PositionX - i * deltaX &&
-                t.PositionY == tuile.PositionY - i * deltaY);
+                t.PositionX == tuile.PositionX - i * deltaX
+                && t.PositionY == tuile.PositionY - i * deltaY
+            );
             if (tuilePrecedente != null)
             {
                 count++;
