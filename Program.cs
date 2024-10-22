@@ -6,6 +6,19 @@ var builder = WebApplication.CreateBuilder(args);
 // Ajoute SignalR aux services
 builder.Services.AddSignalR();
 
+// POlitique des CORS
+builder.Services.AddCors(options => options.AddPolicy("CorsPolicy",
+builder =>
+{
+    builder
+    .AllowAnyMethod()
+    .AllowAnyHeader()
+    .WithOrigins(/* omitted */)
+    .AllowCredentials()
+    .SetIsOriginAllowed(o => true)
+    .WithMethods("GET", "POST");
+}));
+
 // Enregistre l'implémentation de IGestionnaireJeu pour l'injection de dépendances
 builder.Services.AddSingleton<IGestionnaireJeu, GestionnaireJeu>();
 
