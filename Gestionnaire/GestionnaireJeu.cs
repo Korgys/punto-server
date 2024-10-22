@@ -53,7 +53,7 @@ public class GestionnaireJeu : IGestionnaireJeu
 
     public void GererDeconnexion(string idJoueur)
     {
-        var joueurDeconnecte = Jeu.Joueurs.FirstOrDefault(j => j.Identifiant == idJoueur);
+        var joueurDeconnecte = Jeu?.Joueurs?.FirstOrDefault(j => j.Identifiant == idJoueur);
         if (joueurDeconnecte != null)
         {
             Jeu.Joueurs.Remove(joueurDeconnecte);
