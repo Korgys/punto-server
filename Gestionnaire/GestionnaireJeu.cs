@@ -157,9 +157,12 @@ public class GestionnaireJeu : IGestionnaireJeu
 
     private void PasserAuJoueurSuivant()
     {
-        var joueurs = Jeu.Joueurs.ToList();
-        int indexActuel = joueurs.FindIndex(j => j.OrdreDeJeu == Jeu.AuTourDuJoueur.OrdreDeJeu);
-        Jeu.AuTourDuJoueur = joueurs[(indexActuel + 1) % joueurs.Count];
+        if (Jeu.EtatJeu == EtatJeu.EnCours)
+        {
+            var joueurs = Jeu.Joueurs.ToList();
+            int indexActuel = joueurs.FindIndex(j => j.OrdreDeJeu == Jeu.AuTourDuJoueur.OrdreDeJeu);
+            Jeu.AuTourDuJoueur = joueurs[(indexActuel + 1) % joueurs.Count];
+        }
     }
 
     public bool VerifierAlignement(Joueur joueur)

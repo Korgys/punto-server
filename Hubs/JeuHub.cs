@@ -92,7 +92,10 @@ public class JeuHub : Hub
     public async Task ObtenirPlateau()
     {
         var jeu = _gestionnaireJeu.ObtenirJeu();
-        await Clients.Caller.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees));
+        if (jeu != null)
+        {
+            await Clients.Caller.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees));
+        }
     }
 
     public async Task ObtenirMainJoueur()
@@ -111,7 +114,7 @@ public class JeuHub : Hub
         var joueur = jeu.Joueurs.FirstOrDefault(j => j.Identifiant == Context.ConnectionId);
         if (joueur != null)
         {
-            await Clients.Caller.SendAsync("ObtenirJoueur", JoueurPublique.Convertir(joueur));
+            await Clients.Caller.SendAsync("MettreAJourJoueur", JsonConvert.SerializeObject(JoueurPublique.Convertir(joueur)));
         }
     }
 

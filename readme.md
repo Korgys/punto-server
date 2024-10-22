@@ -56,6 +56,7 @@ Socket depuis le serveur :
 - "CommencerTour" : renvoie le nom du joueur qui doit jouer. Appelé lorsque débute un nouveau tour.
 - "MettreAJourTuilesEnMain" : renvoie les tuiles en main du joueur. Appelé au début du tour.
 - "MettreAJourPlateau" : renvoie le plateau (sous forme json). Appelé au début du tour d'un joueur.
+- "MettreAJourJoueur" : renvoie le joueur (sous forme json). Appelé lors d'un appel à ObtenirJoueur.
 - "ErreurCoupNonAutorise" : Appelé si le joueur joue un coup non-autorisé.
 - "TerminerJeu" : renvoie le nom du vainqueur. Appelé lorsqu'un joueur gagne la partie.
 - "JoueurDeconnecte" : renvoie le nom du joueur déconnecté. Appelé lorsqu'un joueur a une erreur de connexion. Le joueur est disqualifié immédiatement.
