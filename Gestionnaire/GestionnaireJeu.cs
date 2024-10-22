@@ -130,12 +130,7 @@ public class GestionnaireJeu : IGestionnaireJeu
             }
 
             // Pioche une nouvelle tuile
-            var tuilePiochee = joueur.TuilesDansLeJeu.FirstOrDefault();
-            if (tuilePiochee != null)
-            {
-                joueur.TuilesDansLeJeu.Remove(tuilePiochee);
-                joueur.TuilesDansLaMain.Add(valeur);
-            }
+            joueur.TuilesDansLaMain.Add(PiocherTuilePourJoueur(joueur));
 
             // Passer au tour suivant
             PasserAuJoueurSuivant();
