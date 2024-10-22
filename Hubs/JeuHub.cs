@@ -94,6 +94,51 @@ public class JeuHub : Hub
         await Clients.Caller.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees));
     }
 
+    public async Task ObtenirMainJoueur()
+    {
+        var jeu = _gestionnaireJeu.ObtenirJeu();
+        var joueur = jeu.Joueurs.FirstOrDefault(j => j.Identifiant == Context.ConnectionId);
+        if (joueur != null)
+        {
+            await Clients.Caller.SendAsync("MettreAJourTuilesEnMain", joueur.TuilesDansLaMain);
+        }
+    }
+
+    public async Task ObtenirJoueur()
+    {
+        var jeu = _gestionnaireJeu.ObtenirJeu();
+        var joueur = jeu.Joueurs.FirstOrDefault(j => j.Identifiant == Context.ConnectionId);
+        if (joueur != null)
+        {
+            await Clients.Caller.SendAsync("ObtenirJoueur", JoueurPublique.Convertir(joueur));
+        }
+    }
+
+    public async Task ObtenirJoueurs()
+    {
+        // Obtient le joueur et les adversaires
+        var jeu = _gestionnaireJeu.ObtenirJeu();
+        var joueur = jeu.Joueurs.FirstOrDefault(j => j.Identifiant == Context.ConnectionId);
+        var adversaires = jeu.Joueurs
+            .Where(j => j.Identifiant != Context.ConnectionId)
+            .Select(j => JoueurPublique.Convertir(j));
+        if (joueur != null && adversaires != null)
+        {
+            // Pour le joueur, renvoie toutes les infos
+            var joueurPublique = JoueurPublique.Convertir(joueur);
+
+            // Pour les adversaires, ne renvoie pas les infos des tuiles dans la main
+            foreach (var adversaire in adversaires)
+            {
+                adversaire.TuilesDansLaMain = null;
+            }
+
+            // Envoie la liste des joueurs avec les infos nécessaires
+            var tousLesJoueurs = new List<JoueurPublique> (adversaires) { joueurPublique };
+            await Clients.Caller.SendAsync("ObtenirJoueurs", tousLesJoueurs);
+        }
+    }
+
     public override async Task OnDisconnectedAsync(Exception exception)
     {
         string connectionId = Context.ConnectionId;

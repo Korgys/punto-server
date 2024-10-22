@@ -18,7 +18,8 @@ public class PlateauPublic
                 Valeur = tuile.Valeur,
                 Proprietaire = new JoueurPublique()
                 {
-                    Nom = tuile.Proprietaire.Nom
+                    Nom = tuile.Proprietaire.Nom,
+                    OrdreDeJeu = tuile.Proprietaire.OrdreDeJeu
                 }
             });
         }
