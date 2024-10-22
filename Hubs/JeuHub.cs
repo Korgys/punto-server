@@ -26,6 +26,7 @@ public class JeuHub : Hub
 
         // Permet au joueur de rejoindre la partie
         _gestionnaireJeu.RejoindrePartie(joueur, Context.ConnectionId);
+        Console.WriteLine($"Joueur {joueur} ({Context.ConnectionId}) a rejoint la partie !");
 
         // Diffuse que le joueur a rejoint la partie
         await Clients.All.SendAsync("RejoindrePartie", joueur);
@@ -35,10 +36,8 @@ public class JeuHub : Hub
         if (jeu.EtatJeu == EtatJeu.EnCours)
         {
             // Diffuse que la partie commence
-            await Clients.All.SendAsync(
-                "CommencerPartie",
-                jeu.Joueurs.OrderBy(j => j.OrdreDeJeu).ToList()
-            );
+            Console.WriteLine("La partie commence !");
+            await Clients.All.SendAsync("CommencerPartie", jeu.Joueurs.OrderBy(j => j.OrdreDeJeu).ToList());
 
             // Commence le tour
             var joueurQuiDebute = jeu.Joueurs.FirstOrDefault(j => j.OrdreDeJeu == 2); // On commence avec le joueur 2 car le joueur 1 place déjà une carte au centre d'après la règle
@@ -69,26 +68,39 @@ public class JeuHub : Hub
 
     public async Task JouerTuile(string nomDuJoueur, int x, int y, int valeur)
     {
+        var jeu = _gestionnaireJeu.ObtenirJeu();
+
         // Vérifier si le joueur peut jouer cette tuile
         if (!_gestionnaireJeu.PeutJouerTuile(nomDuJoueur, x, y, valeur))
         {
             // Envoie un message d'erreur au joueur indiquant que le coup n'est pas autorisé
             await Clients.Caller.SendAsync("ErreurCoupNonAutorise", "Coup non autorisé.");
+
+            jeu = _gestionnaireJeu.JouerTuile(nomDuJoueur, x, y, valeur);
+            var joueurAvecPenalite = jeu.Joueurs.FirstOrDefault(j => j.Identifiant == Context.ConnectionId);
+
+            // Joueur disqualifié car plus présent dans la liste des joueurs
+            if (joueurAvecPenalite == null)
+            {
+                // Notifie les autres clients de la déconnexion si nécessaire
+                await Clients.Others.SendAsync("JoueurDeconnecte", Context.ConnectionId);
+
+                // Appele la méthode de la classe de base
+                await base.OnDisconnectedAsync(new Exception());
+            }
+
             return;
         }
 
         // Le joueur joue la tuile
-        var jeu = _gestionnaireJeu.JouerTuile(nomDuJoueur, x, y, valeur);
+        jeu = _gestionnaireJeu.JouerTuile(nomDuJoueur, x, y, valeur);
         var tuile = jeu.Plateau.TuilesPlacees.Last(); // Dernière tuile placée
         await Clients.All.SendAsync("JouerTuile", nomDuJoueur, x, y, valeur);
 
         // Vérifier si la partie est terminée
         if (jeu.EtatJeu == EtatJeu.Termine)
         {
-            await Clients.All.SendAsync(
-                "MettreAJourPlateau",
-                JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees)
-            ); // json des tuiles placées
+            await Clients.All.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees));
             await Clients.All.SendAsync("TerminerJeu", jeu.Vainqueur?.Nom ?? "Inconnu");
             return;
         }
@@ -110,17 +122,32 @@ public class JeuHub : Hub
             .SendAsync("MettreAJourTuilesEnMain", joueurQuiDoitJouer.TuilesDansLaMain);
     }
 
+    public async Task ObtenirEtatJeu()
+    {
+        Console.WriteLine($"[{ObtenirNomDuJoueur(Context.ConnectionId)}] Appel à ObtenirEtatJeu.");
+
+        var jeu = _gestionnaireJeu.ObtenirJeu();
+        if (jeu != null)
+        {
+            await Clients.Caller.SendAsync("MettreAJourEtatJeu", jeu.EtatJeu.ToString());
+        }
+    }
+
     public async Task ObtenirPlateau()
     {
+        Console.WriteLine($"[{ObtenirNomDuJoueur(Context.ConnectionId)}] Appel à ObtenirPlateau.");
+
         var jeu = _gestionnaireJeu.ObtenirJeu();
-        await Clients.Caller.SendAsync(
-            "MettreAJourPlateau",
-            JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees)
-        );
+        if (jeu != null)
+        {
+            await Clients.Caller.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees));
+        }
     }
 
     public async Task ObtenirMainJoueur()
     {
+        Console.WriteLine($"[{ObtenirNomDuJoueur(Context.ConnectionId)}] Appel à ObtenirMainJoueur.");
+
         var jeu = _gestionnaireJeu.ObtenirJeu();
         var joueur = jeu.Joueurs.FirstOrDefault(j => j.Identifiant == Context.ConnectionId);
         if (joueur != null)
@@ -131,16 +158,20 @@ public class JeuHub : Hub
 
     public async Task ObtenirJoueur()
     {
+        Console.WriteLine($"[{ObtenirNomDuJoueur(Context.ConnectionId)}] Appel à ObtenirJoueur.");
+
         var jeu = _gestionnaireJeu.ObtenirJeu();
         var joueur = jeu.Joueurs.FirstOrDefault(j => j.Identifiant == Context.ConnectionId);
         if (joueur != null)
         {
-            await Clients.Caller.SendAsync("ObtenirJoueur", JoueurPublique.Convertir(joueur));
+            await Clients.Caller.SendAsync("MettreAJourJoueur", JsonConvert.SerializeObject(JoueurPublique.Convertir(joueur)));
         }
     }
 
     public async Task ObtenirJoueurs()
     {
+        Console.WriteLine($"[{ObtenirNomDuJoueur(Context.ConnectionId)}] Appel à ObtenirJoueurs.");
+
         // Obtient le joueur et les adversaires
         var jeu = _gestionnaireJeu.ObtenirJeu();
         var joueur = jeu.Joueurs.FirstOrDefault(j => j.Identifiant == Context.ConnectionId);
@@ -178,5 +209,13 @@ public class JeuHub : Hub
 
         // Appele la méthode de la classe de base
         await base.OnDisconnectedAsync(exception);
+    }
+
+    private string ObtenirNomDuJoueur(string connectionId)
+    {
+        var jeu = _gestionnaireJeu.ObtenirJeu();
+        if (jeu == null) return "";
+
+        return jeu.Joueurs.FirstOrDefault(j => j.Identifiant == connectionId)?.Nom ?? ""; 
     }
 }
