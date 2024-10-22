@@ -71,6 +71,7 @@ public class JeuHub : Hub
         // Vérifier si la partie est terminée
         if (jeu.EtatJeu == EtatJeu.Termine)
         {
+            await Clients.All.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees));
             await Clients.All.SendAsync("TerminerJeu", jeu.Vainqueur?.Nom ?? "Inconnu");
             return;
         }
