@@ -41,7 +41,7 @@ docker build -t punto-server .
 
 Lance l'image docker :
 ```bash
-docker run -p 8080:8080 -p 8081:8081 punto-server
+docker run -p 5000:8080 punto-server
 ```
 
 ## Utilisation
