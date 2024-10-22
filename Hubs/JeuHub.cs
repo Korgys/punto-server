@@ -88,6 +88,12 @@ public class JeuHub : Hub
         await Clients.Client(joueurQuiDoitJouer.Identifiant).SendAsync("MettreAJourTuilesEnMain", joueurQuiDoitJouer.TuilesDansLaMain);
     }
 
+    public async Task ObtenirPlateau()
+    {
+        var jeu = _gestionnaireJeu.ObtenirJeu();
+        await Clients.Caller.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees));
+    }
+
     public override async Task OnDisconnectedAsync(Exception exception)
     {
         string connectionId = Context.ConnectionId;

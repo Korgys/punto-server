@@ -63,3 +63,4 @@ Socket depuis le serveur :
 Socket vers le serveur : 
 - "RejoindrePartie" : Prend en entrée le nom du joueur. Rejoins le jeu. 
 - "JouerTuile" : Prend en entrée le nom du joueur, la position x, la position y et la valeur de la tuile. Ne doit être appelé que lorsque c'est le tour du joueur de jouer.
+- "ObtenirPlateau" : Prend aucune entrée. Renvoie le plateau.
