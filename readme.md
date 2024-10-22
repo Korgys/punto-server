@@ -54,6 +54,7 @@ Socket depuis le serveur :
 - "JouerTuile" : renvoie le nom du joueur, la position X, la position Y et la valeur de la tuile jouée. Appelé à chaque tuile joué.
 - "CommencerPartie" : renvoie le nom des joueurs qui jouent la partie. Appelé lorsque la partie commence.
 - "CommencerTour" : renvoie le nom du joueur qui doit jouer. Appelé lorsque débute un nouveau tour.
+- "MettreAJourEtatJeu" : renvoie l'état de la partie.
 - "MettreAJourTuilesEnMain" : renvoie les tuiles en main du joueur. Appelé au début du tour.
 - "MettreAJourPlateau" : renvoie le plateau (sous forme json). Appelé au début du tour d'un joueur.
 - "MettreAJourJoueur" : renvoie le joueur (sous forme json). Appelé lors d'un appel à ObtenirJoueur.
@@ -64,6 +65,7 @@ Socket depuis le serveur :
 Socket vers le serveur : 
 - "RejoindrePartie" : Prend en entrée le nom du joueur. Rejoins le jeu. 
 - "JouerTuile" : Prend en entrée le nom du joueur, la position x, la position y et la valeur de la tuile. Ne doit être appelé que lorsque c'est le tour du joueur de jouer.
+- "ObtenirEtatJeu" : Ne prend aucune entrée. Renvoie l'état du jeu (ex: "EnCours").
 - "ObtenirPlateau" : Ne prend aucune entrée. Renvoie le plateau.
 - "ObtenirMainJoueur" : Ne prend aucune entrée. Renvoie la main du joueur si le joueur est bien présent dans la partie.
 - "ObtenirJoueur" : Ne prend aucune entrée. Renvoie toutes les infos du joueur.
