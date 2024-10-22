@@ -60,6 +60,6 @@ Socket depuis le serveur :
 - "TerminerJeu" : renvoie le nom du vainqueur. Appelé lorsqu'un joueur gagne la partie.
 - "JoueurDeconnecte" : renvoie le nom du joueur déconnecté. Appelé lorsqu'un joueur a une erreur de connexion. Le joueur est disqualifié immédiatement.
 
-Socker vers le serveur : 
+Socket vers le serveur : 
 - "RejoindrePartie" : Prend en entrée le nom du joueur. Rejoins le jeu. 
 - "JouerTuile" : Prend en entrée le nom du joueur, la position x, la position y et la valeur de la tuile. Ne doit être appelé que lorsque c'est le tour du joueur de jouer.

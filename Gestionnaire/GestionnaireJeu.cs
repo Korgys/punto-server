@@ -129,6 +129,14 @@ public class GestionnaireJeu : IGestionnaireJeu
                 Console.WriteLine($"{joueur.Nom} a gagné la partie !");
             }
 
+            // Pioche une nouvelle tuile
+            var tuilePiochee = joueur.TuilesDansLeJeu.FirstOrDefault();
+            if (tuilePiochee != null)
+            {
+                joueur.TuilesDansLeJeu.Remove(tuilePiochee);
+                joueur.TuilesDansLaMain.Add(valeur);
+            }
+
             // Passer au tour suivant
             PasserAuJoueurSuivant();
         }
