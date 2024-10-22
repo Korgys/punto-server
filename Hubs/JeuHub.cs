@@ -23,7 +23,7 @@ public class JeuHub : Hub
         {
             _gestionnaireJeu.DemarrerUnJeu();
         }
-        
+
         // Permet au joueur de rejoindre la partie
         _gestionnaireJeu.RejoindrePartie(joueur, Context.ConnectionId);
 
@@ -35,21 +35,35 @@ public class JeuHub : Hub
         if (jeu.EtatJeu == EtatJeu.EnCours)
         {
             // Diffuse que la partie commence
-            await Clients.All.SendAsync("CommencerPartie", jeu.Joueurs.OrderBy(j => j.OrdreDeJeu).ToList());
+            await Clients.All.SendAsync(
+                "CommencerPartie",
+                jeu.Joueurs.OrderBy(j => j.OrdreDeJeu).ToList()
+            );
 
             // Commence le tour
-            var joueurQuiDebute = jeu.Joueurs
-                .FirstOrDefault(j => j.OrdreDeJeu == 2); // On commence avec le joueur 2 car le joueur 1 place déjà une carte au centre d'après la règle
+            var joueurQuiDebute = jeu.Joueurs.FirstOrDefault(j => j.OrdreDeJeu == 2); // On commence avec le joueur 2 car le joueur 1 place déjà une carte au centre d'après la règle
 
             var tuile = jeu.Plateau.TuilesPlacees.FirstOrDefault();
             if (tuile != null)
             {
-                await Clients.All.SendAsync("JouerTuile", tuile.Proprietaire.Nom, tuile.PositionX, tuile.PositionY, tuile.Valeur);
+                await Clients.All.SendAsync(
+                    "JouerTuile",
+                    tuile.Proprietaire.Nom,
+                    tuile.PositionX,
+                    tuile.PositionY,
+                    tuile.Valeur
+                );
             }
 
-            await Clients.All.SendAsync("CommencerTour", joueurQuiDebute.Nom);            
-            await Clients.Caller.SendAsync("MettreAJourTuilesEnMain", joueurQuiDebute.TuilesDansLaMain); // ex: 3;6
-            await Clients.All.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees)); // json des tuiles placées
+            await Clients.All.SendAsync(
+                "MettreAJourPlateau",
+                JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees)
+            ); // json des tuiles placées
+            await Clients.All.SendAsync("CommencerTour", joueurQuiDebute.Nom);
+            await Clients.Caller.SendAsync(
+                "MettreAJourTuilesEnMain",
+                joueurQuiDebute.TuilesDansLaMain
+            ); // ex: 3;6
         }
     }
 
@@ -71,6 +85,10 @@ public class JeuHub : Hub
         // Vérifier si la partie est terminée
         if (jeu.EtatJeu == EtatJeu.Termine)
         {
+            await Clients.All.SendAsync(
+                "MettreAJourPlateau",
+                JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees)
+            ); // json des tuiles placées
             await Clients.All.SendAsync("TerminerJeu", jeu.Vainqueur?.Nom ?? "Inconnu");
             return;
         }
@@ -79,19 +97,26 @@ public class JeuHub : Hub
         var joueur = jeu.Joueurs.First(j => j.Nom == nomDuJoueur);
         var tuilesEnMain = joueur.TuilesDansLaMain;
         await Clients.Caller.SendAsync("MettreAJourTuilesEnMain", tuilesEnMain);
-        var jsonPlateau = JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees);
+        var jsonPlateau = JsonConvert.SerializeObject(
+            PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees
+        );
         await Clients.All.SendAsync("MettreAJourPlateau", jsonPlateau); // json des tuiles placées
 
         // Diffuser le tour suivant
         var joueurQuiDoitJouer = jeu.AuTourDuJoueur;
         await Clients.All.SendAsync("CommencerTour", joueurQuiDoitJouer.Nom);
-        await Clients.Client(joueurQuiDoitJouer.Identifiant).SendAsync("MettreAJourTuilesEnMain", joueurQuiDoitJouer.TuilesDansLaMain);
+        await Clients
+            .Client(joueurQuiDoitJouer.Identifiant)
+            .SendAsync("MettreAJourTuilesEnMain", joueurQuiDoitJouer.TuilesDansLaMain);
     }
 
     public async Task ObtenirPlateau()
     {
         var jeu = _gestionnaireJeu.ObtenirJeu();
-        await Clients.Caller.SendAsync("MettreAJourPlateau", JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees));
+        await Clients.Caller.SendAsync(
+            "MettreAJourPlateau",
+            JsonConvert.SerializeObject(PlateauPublic.Convertir(jeu.Plateau).TuilesPlacees)
+        );
     }
 
     public async Task ObtenirMainJoueur()
@@ -119,8 +144,8 @@ public class JeuHub : Hub
         // Obtient le joueur et les adversaires
         var jeu = _gestionnaireJeu.ObtenirJeu();
         var joueur = jeu.Joueurs.FirstOrDefault(j => j.Identifiant == Context.ConnectionId);
-        var adversaires = jeu.Joueurs
-            .Where(j => j.Identifiant != Context.ConnectionId)
+        var adversaires = jeu
+            .Joueurs.Where(j => j.Identifiant != Context.ConnectionId)
             .Select(j => JoueurPublique.Convertir(j));
         if (joueur != null && adversaires != null)
         {
@@ -134,7 +159,7 @@ public class JeuHub : Hub
             }
 
             // Envoie la liste des joueurs avec les infos nécessaires
-            var tousLesJoueurs = new List<JoueurPublique> (adversaires) { joueurPublique };
+            var tousLesJoueurs = new List<JoueurPublique>(adversaires) { joueurPublique };
             await Clients.Caller.SendAsync("ObtenirJoueurs", tousLesJoueurs);
         }
     }
