@@ -1,4 +1,5 @@
-﻿using punto_server.Models;
+﻿using punto_server.Gestionnaire;
+using punto_server.Models;
 
 namespace punto_server.Services;
 
@@ -39,7 +40,6 @@ public class GestionnaireJeu : IGestionnaireJeu
         // Pioche 2 tuiles pour le joueur
         joueur.TuilesDansLaMain.Add(PiocherTuilePourJoueur(joueur));
         joueur.TuilesDansLaMain.Add(PiocherTuilePourJoueur(joueur));
-        Console.WriteLine($"{joueur.Nom} pioche 2 tuiles.");
 
         Jeu.Joueurs.Add(joueur);
 
@@ -54,7 +54,7 @@ public class GestionnaireJeu : IGestionnaireJeu
     public void GererDeconnexion(string idJoueur)
     {
         var joueurDeconnecte = Jeu?.Joueurs?.FirstOrDefault(j => j.Identifiant == idJoueur);
-        if (joueurDeconnecte != null)
+        if (Jeu?.Joueurs != null && joueurDeconnecte != null)
         {
             Jeu.Joueurs.Remove(joueurDeconnecte);
         }
@@ -63,32 +63,40 @@ public class GestionnaireJeu : IGestionnaireJeu
     public bool PeutJouerTuile(string nomDuJoueur, int x, int y, int valeur)
     {
         // Cherche le joueur en question
-        var joueur = Jeu.Joueurs.FirstOrDefault(j => j.Nom == nomDuJoueur);
+        var joueur = Jeu?.Joueurs?.FirstOrDefault(j => j.Nom == nomDuJoueur);
+        if (joueur == null) return false;
 
-        // Conditions pour pouvoir jouer une tuile
-        bool estAdjacent = Jeu.Plateau.TuilesPlacees.Any(t =>
-            Math.Abs(t.PositionX - x) <= 1 && Math.Abs(t.PositionY - y) <= 1);
+        // Définit la tuile à jouer
+        var tuile = new Tuile
+        {
+            PositionX = x,
+            PositionY = y,
+            Valeur = valeur,
+            Proprietaire = joueur
+        };
 
-        var coupAutorise = Jeu.EtatJeu == EtatJeu.EnCours   // Partie en cours
-            && joueur != null                               // Etre un joueur de la partie
-            && joueur.OrdreDeJeu == Jeu.AuTourDuJoueur.OrdreDeJeu     // Etre le joueur à qui c'est le tour de jouer
-            && joueur.TuilesDansLaMain.Contains(valeur)     // Jouer une tuile de sa main
-            && estAdjacent;                                 // La tuile doit être adjacente à une tuile existante
+        // Regarde si le joueur peut jouer la tuile
+        bool coupAutorise = GestionnaireRegles.PeutPlacerTuile(Jeu.Plateau, joueur, tuile);
 
         // Ajoute une pénalité en cas de coup non-autorisé
-        if (joueur != null && !coupAutorise)
+        if (!coupAutorise)
         {
             joueur.Penalite++;
-            Console.WriteLine($"Le joueur {joueur.Nom} reçoit une pénalité pour coup non-autorisé.");
+            Console.WriteLine($"Le joueur {joueur.Nom} reçoit une pénalité pour coup non-autorisé (tuile {valeur} en {x}, {y}).");
 
-            if (joueur.Penalite >= 3) // Disqualifie le joueur après 3 pénalités
+            // Disqualifie le joueur après 3 pénalités
+            if (joueur.Penalite >= 3)
             {
                 Console.WriteLine($"Le joueur {joueur.Nom} a été disqualifié.");
                 Jeu.Joueurs.Remove(joueur);
                 if (Jeu.Joueurs.Count == 1) // Il reste un seul joueur : il est désigné comme vainqueur
                 {
+                    // Actualise l'état de la partie
                     Jeu.EtatJeu = EtatJeu.Termine;
                     Jeu.Vainqueur = Jeu.Joueurs.Last();
+
+                    // Affiche le plateau et le nom du vainqueur
+                    AfficherPlateau();
                     Console.WriteLine($"{Jeu.Vainqueur.Nom} a gagné la partie !");
                     return false;
                 }
@@ -108,6 +116,7 @@ public class GestionnaireJeu : IGestionnaireJeu
 
         if (joueur != null && PeutJouerTuile(nomDuJoueur, x, y, valeur))
         {
+            // Joue la tuile
             var tuile = new Tuile
             {
                 Valeur = valeur,
@@ -117,6 +126,9 @@ public class GestionnaireJeu : IGestionnaireJeu
             };
             Jeu.Plateau.TuilesPlacees.Add(tuile);
 
+            // Affiche le plateau
+            AfficherPlateau();
+
             // Retirer la tuile de la main du joueur
             joueur.TuilesDansLaMain.Remove(valeur);
             Console.WriteLine($"{joueur.Nom} a placé la tuile {valeur} en position ({x},{y}).");
@@ -124,44 +136,73 @@ public class GestionnaireJeu : IGestionnaireJeu
             // Vérifier si le joueur a gagné en alignant 4 tuiles
             if (VerifierAlignement(joueur))
             {
+                // Actualise l'état de la partie
                 Jeu.EtatJeu = EtatJeu.Termine;
                 Jeu.Vainqueur = joueur;
+
+                // Affiche le plateau et le nom du vainqueur
+                AfficherPlateau();
                 Console.WriteLine($"{joueur.Nom} a gagné la partie !");
             }
+            else
+            {
+                // Pioche une nouvelle tuile
+                joueur.TuilesDansLaMain.Add(PiocherTuilePourJoueur(joueur));
 
-            // Pioche une nouvelle tuile
-            joueur.TuilesDansLaMain.Add(PiocherTuilePourJoueur(joueur));
-
-            // Passer au tour suivant
-            PasserAuJoueurSuivant();
+                // Passer au tour suivant
+                PasserAuJoueurSuivant();
+            }
         }
 
         return Jeu;
     }
 
+    /// <summary>
+    /// Pioche une tuile pour le joueur et ajoute cette tuile dans sa main.
+    /// </summary>
+    /// <param name="joueur"></param>
+    /// <returns></returns>
     public int PiocherTuilePourJoueur(Joueur joueur)
     {
-        var tuiles = joueur.TuilesDansLeJeu;
+        var tuilesDansLaPioche = joueur.TuilesDansLeJeu;
 
         // Si le joueur n'a plus de tuile, la partie se termine
-        if (tuiles.Count == 0) 
+        if (tuilesDansLaPioche.Count == 0) 
         {
             Jeu.EtatJeu = EtatJeu.Termine;
             return 0; // On pourrait également utiliser null. Signifie qu'il n'y a plus de tuile.
         }
 
-        var tuilePiochee = tuiles.First(); // Pioche la première tuile
-        tuiles.Remove(tuilePiochee); // Retire la tuile de la liste
+        var tuilePiochee = tuilesDansLaPioche.First(); // Pioche la première tuile
+        tuilesDansLaPioche.Remove(tuilePiochee); // Retire la tuile de la liste
+
+        string main = tuilePiochee + (joueur.TuilesDansLaMain.Any() ? ", " : "") + string.Join(',', joueur.TuilesDansLaMain);
+        Console.WriteLine($"{joueur.Nom} pioche la tuile {tuilePiochee} (main: {main}).");
+
         return tuilePiochee;
     }
 
     private void PasserAuJoueurSuivant()
     {
-        if (Jeu.EtatJeu == EtatJeu.EnCours)
+        if (Jeu?.Joueurs == null || Jeu.EtatJeu != EtatJeu.EnCours) return;
+
+        var indexJoueurActuel = Jeu.Joueurs.IndexOf(Jeu.AuTourDuJoueur);
+        var indexJoueurSuivant = (indexJoueurActuel + 1) % Jeu.Joueurs.Count;
+        Jeu.AuTourDuJoueur = Jeu.Joueurs[indexJoueurSuivant];
+
+        AfficherMessageDeJoueur(Jeu.AuTourDuJoueur.OrdreDeJeu, $"C'est au tour de {Jeu.AuTourDuJoueur.Nom} de jouer.\n");
+
+        // Cas où le joueur n'a plus de tuiles
+        if (Jeu.AuTourDuJoueur.TuilesDansLaMain.Count == 0)
         {
-            var joueurs = Jeu.Joueurs.ToList();
-            int indexActuel = joueurs.FindIndex(j => j.OrdreDeJeu == Jeu.AuTourDuJoueur.OrdreDeJeu);
-            Jeu.AuTourDuJoueur = joueurs[(indexActuel + 1) % joueurs.Count];
+            Console.WriteLine("Le joueur n'a plus de tuile. Fin de la partie.");
+            Jeu.EtatJeu = EtatJeu.Termine;
+
+            // Désigne le vainqueur en prenant le 1er joueur au hasard ayant réussi à aligner 3 tuiles.
+            var aleatoire = new Random();
+            Jeu.Vainqueur = Jeu.Joueurs
+                .OrderBy(j => aleatoire.Next())
+                .FirstOrDefault(j => GestionnaireRegles.VerifierConditionsVictoire(Jeu.Plateau, j, 3));
         }
     }
 
@@ -192,7 +233,7 @@ public class GestionnaireJeu : IGestionnaireJeu
     }
 
     // Cette méthode vérifie si 4 tuiles sont alignées dans une direction spécifique
-    private bool VerifierAlignementDirection(List<Tuile> tuilesJoueur, Tuile tuile, int deltaX, int deltaY)
+    private static bool VerifierAlignementDirection(List<Tuile> tuilesJoueur, Tuile tuile, int deltaX, int deltaY)
     {
         int count = 1; // Compte la tuile actuelle
 
@@ -231,4 +272,89 @@ public class GestionnaireJeu : IGestionnaireJeu
         // Si on a trouvé 4 tuiles alignées
         return count >= 4;
     }
+
+    /// <summary>
+    /// Affiche le plateau en console.
+    /// </summary>
+    public void AfficherPlateau()
+    {
+        int tailleGrille = 6 * 2 - 1; // 6 de rayon sur une grille de 11 de diametre
+        var grille = new string[tailleGrille, tailleGrille];
+        var tuilesPlacees = Jeu.Plateau.TuilesPlacees;
+
+        // Initialise la grille avec des "." pour les emplacements vides
+        for (int i = 0; i < tailleGrille; i++)
+        {
+            for (int j = 0; j < tailleGrille; j++)
+            {
+                grille[i, j] = " ";
+            }
+        }
+
+        // Remplit la grille avec les tuiles placées (sans affichage de couleur ici)
+        foreach (var tuile in tuilesPlacees)
+        {
+            if (tuile.PositionX > -6 && tuile.PositionX < 6 && tuile.PositionY > -6 && tuile.PositionY < 6)
+            {
+                grille[tuile.PositionY + 5, tuile.PositionX + 5] = tuile.Valeur.ToString();
+            }
+        }
+
+        // Affiche la grille dans la console avec des couleurs
+        Console.WriteLine("Plateau :");
+        Console.WriteLine(" X 5 4 3 2 1 0 1 2 3 4 5 6");
+        Console.WriteLine("  ________________________");
+        for (int i = 0; i < tailleGrille; i++)
+        {
+            if (i == 0) Console.Write(" Y|");
+            else if (i >= 5) Console.Write($" {i - 5}|"); // Affichage des nombres positifs avec un espace devant
+            else Console.Write($"{i - 5}|");
+
+            for (int j = 0; j < tailleGrille; j++)
+            {
+                // Cherche la tuile à cette position
+                var tuile = tuilesPlacees.FirstOrDefault(t => t.PositionX == j - 5 && t.PositionY == i - 5);
+                if (tuile != null)
+                {
+                    // Change la couleur en fonction du joueur
+                    AfficherMessageDeJoueur(tuile.Proprietaire.OrdreDeJeu, grille[i, j] + " ");
+                }
+                else
+                {
+                    // Affiche les emplacements vides avec la couleur par défaut
+                    Console.Write(grille[i, j] + " ");
+                }
+            }
+            Console.WriteLine(); // Retour à la ligne après chaque rangée
+        }
+
+        // Réinitialise la couleur à la fin
+        Console.ResetColor();
+    }
+
+    /// <summary>
+    /// Affiche un message en couleur dans la console en fonction de l'index du joueur.
+    /// </summary>
+    /// <param name="numeroJoueur"></param>
+    /// <param name="message"></param>
+    public static void AfficherMessageDeJoueur(int numeroJoueur, string message)
+    {
+        Console.ForegroundColor = numeroJoueur switch
+        {
+            1 => ConsoleColor.Magenta,// Joueur 1 - Magenta
+            2 => ConsoleColor.Cyan,// Joueur 2 - Cyan
+            3 => ConsoleColor.Green,// Joueur 3 - Vert
+            4 => ConsoleColor.Yellow,// Joueur 4 - Jaune
+            5 => ConsoleColor.Gray,// Joueur 5 - Gris
+            6 => ConsoleColor.Red,// Joueur 6 - Rouge
+            7 => ConsoleColor.DarkYellow,// Joueur 7 - Jaune foncé
+            8 => ConsoleColor.DarkRed,// Joueur 8 - rouge foncé
+            9 => ConsoleColor.DarkGray,// Joueur 9 - gris foncé
+            10 => ConsoleColor.DarkCyan,// Joueur 10 - cyan foncé
+            _ => ConsoleColor.White,// Autres joueurs ou cas par défaut
+        };
+        Console.Write(message);
+        Console.ResetColor();
+    }
+
 }
