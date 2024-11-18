@@ -5,6 +5,9 @@ namespace punto_server.Services;
 
 public class GestionnaireJeu : IGestionnaireJeu
 {
+    private readonly Dictionary<string, CancellationTokenSource> _timersJoueurs = new();
+    private readonly int _timerInactiviteEnSecondes = 30;
+
     public Jeu Jeu { get; set; }
 
     public Jeu ObtenirJeu() => Jeu;
@@ -153,6 +156,12 @@ public class GestionnaireJeu : IGestionnaireJeu
 
         if (joueur != null && PeutJouerTuile(nomDuJoueur, x, y, valeur))
         {
+            // Annule le timer pour ce joueur
+            if (_timersJoueurs.ContainsKey(joueur.Nom))
+            {
+                _timersJoueurs[joueur.Nom].Cancel();
+            }
+
             // Joue la tuile
             var tuile = new Tuile
             {
@@ -227,6 +236,70 @@ public class GestionnaireJeu : IGestionnaireJeu
         return tuilePiochee;
     }
 
+    /// <summary>
+    /// démarre un timer de 30 secondes pour le joueur actif. 
+    /// Si le joueur ne joue pas dans les 30 secondes, une pénalité est appliquée et le tour passe au joueur suivant.
+    /// </summary>
+    /// <param name="joueur"></param>
+    private void DemarrerTimerPourJoueur(Joueur joueur)
+    {
+        // Annule le timer précédent s'il existe
+        if (_timersJoueurs.ContainsKey(joueur.Nom))
+        {
+            _timersJoueurs[joueur.Nom].Cancel();
+            _timersJoueurs[joueur.Nom].Dispose();
+        }
+
+        // Crée un nouveau CancellationTokenSource
+        var cts = new CancellationTokenSource();
+        _timersJoueurs[joueur.Nom] = cts;
+
+        // Démarre un timer de 30 secondes
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                Console.WriteLine($"Début du timer pour {joueur.Nom}. 30 secondes pour jouer.");
+                await Task.Delay(TimeSpan.FromSeconds(_timerInactiviteEnSecondes), cts.Token);
+
+                // Si le délai expire, applique une pénalité
+                Console.WriteLine($"Le joueur {joueur.Nom} a dépassé le temps imparti !");
+                joueur.Penalite++;
+                Console.WriteLine($"Le joueur {joueur.Nom} reçoit une pénalité (Total : {joueur.Penalite}).");
+
+                // Si le joueur a atteint le nombre de pénalités maximum, il est disqualifié
+                if (joueur.Penalite >= 3)
+                {
+                    Console.WriteLine($"Le joueur {joueur.Nom} est disqualifié pour inactivité.");
+                    Jeu.Joueurs.Remove(joueur);
+
+                    // Si un seul joueur reste, il est le vainqueur
+                    if (Jeu.Joueurs.Count == 1)
+                    {
+                        Jeu.EtatJeu = EtatJeu.Termine;
+                        Jeu.Vainqueur = Jeu.Joueurs.Last();
+                        Console.WriteLine($"{Jeu.Vainqueur.Nom} a gagné la partie !");
+                        return;
+                    }
+                }
+
+                // Passe au joueur suivant
+                PasserAuJoueurSuivant();
+
+            }
+            catch (TaskCanceledException)
+            {
+                // Le joueur a joué à temps, on ignore l'annulation
+                Console.WriteLine($"Le timer pour {joueur.Nom} a été annulé car il a joué à temps.");
+            }
+            finally
+            {
+                // Nettoyage du token
+                _timersJoueurs.Remove(joueur.Nom);
+            }
+        });
+    }
+
     private void PasserAuJoueurSuivant()
     {
         if (Jeu?.Joueurs == null || Jeu.EtatJeu != EtatJeu.EnCours) return;
@@ -248,7 +321,11 @@ public class GestionnaireJeu : IGestionnaireJeu
             Jeu.Vainqueur = Jeu.Joueurs
                 .OrderBy(j => aleatoire.Next())
                 .FirstOrDefault(j => GestionnaireRegles.VerifierConditionsVictoire(Jeu.Plateau, j, 3));
+            return;
         }
+
+        // Démarrer un timer pour le joueur actif
+        DemarrerTimerPourJoueur(Jeu.AuTourDuJoueur);
     }
 
     public bool VerifierAlignement(Joueur joueur)
