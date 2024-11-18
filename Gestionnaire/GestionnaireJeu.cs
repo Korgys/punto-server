@@ -62,6 +62,25 @@ public class GestionnaireJeu : IGestionnaireJeu
         }
     }
 
+    private readonly Dictionary<string, string> _nomVersConnectionId = new(); // Nom -> ConnectionId
+
+    public void AssocierJoueur(string nom, string connectionId)
+    {
+        if (_nomVersConnectionId.ContainsKey(nom))
+        {
+            _nomVersConnectionId[nom] = connectionId; // Mise à jour de la connexion
+        }
+        else
+        {
+            _nomVersConnectionId.Add(nom, connectionId); // Nouvelle association
+        }
+    }
+
+    public string ObtenirConnectionId(string nom)
+    {
+        return _nomVersConnectionId.ContainsKey(nom) ? _nomVersConnectionId[nom] : null;
+    }
+
     public void GererDeconnexion(string idJoueur)
     {
         try

@@ -38,12 +38,27 @@ public class JeuHub : Hub
             await Clients.All.SendAsync("Erreur", "Partie terminée, démarrez un nouveau jeu.");
         }
 
-        // Permet au joueur de rejoindre la partie
-        _gestionnaireJeu.RejoindrePartie(joueur, Context.ConnectionId);
-        Console.WriteLine($"Joueur {joueur} ({Context.ConnectionId}) a rejoint la partie !");
+        // Gestion des reconnexions de joueurs existants
+        var joueurExistant = jeu.Joueurs.FirstOrDefault(j => j.Nom == joueur);
+        if (joueurExistant != null)
+        {
+            // Mise à jour du ConnectionId pour le joueur existant
+            joueurExistant.Identifiant = Context.ConnectionId;
+            _gestionnaireJeu.AssocierJoueur(joueur, Context.ConnectionId);
 
-        // Diffuse que le joueur a rejoint la partie
-        await Clients.All.SendAsync("RejoindrePartie", joueur);
+            Console.WriteLine($"Joueur {joueur} a reconfirmé sa connexion ({Context.ConnectionId}).");
+            await Clients.Caller.SendAsync("Reconnecte", joueur);
+        }
+        else
+        {
+            // Nouveau joueur
+            _gestionnaireJeu.RejoindrePartie(joueur, Context.ConnectionId);
+            _gestionnaireJeu.AssocierJoueur(joueur, Context.ConnectionId);
+
+            // Diffuse que le joueur a rejoint la partie
+            Console.WriteLine($"Nouveau joueur {joueur} ({Context.ConnectionId}) a rejoint la partie !");
+            await Clients.All.SendAsync("RejoindrePartie", joueur);
+        }
 
         // Récupère la variable mise à jour
         jeu = _gestionnaireJeu.ObtenirJeu();
@@ -215,15 +230,20 @@ public class JeuHub : Hub
 
         Console.WriteLine($"Client déconnecté : {connectionId}");
 
-        // Appeler un service qui gère la logique de suppression du joueur
-        _gestionnaireJeu.GererDeconnexion(connectionId);
+        // Marquer le joueur comme déconnecté
+        var joueur = _gestionnaireJeu.ObtenirJeu()?.Joueurs.FirstOrDefault(j => j.Identifiant == connectionId);
+        if (joueur != null)
+        {
+            joueur.Identifiant = null; // Marque la déconnexion
+            Console.WriteLine($"Le joueur {joueur.Nom} est marqué comme déconnecté.");
+        }
 
-        // Notifie les autres clients de la déconnexion si nécessaire
+        // Notifie les autres joueurs
         await Clients.Others.SendAsync("JoueurDeconnecte", connectionId);
 
-        // Appele la méthode de la classe de base
         await base.OnDisconnectedAsync(exception);
     }
+
 
     private string ObtenirNomDuJoueur(string connectionId)
     {
