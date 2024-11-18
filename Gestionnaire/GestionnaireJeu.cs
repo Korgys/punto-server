@@ -11,7 +11,10 @@ public class GestionnaireJeu : IGestionnaireJeu
 
     public void DemarrerUnJeu()
     {
-        Jeu = new Jeu();
+        Console.WriteLine("Entrez le nombre de joueurs dans la partie : ");
+        var nbJoueurs = int.Parse(Console.ReadLine());
+
+        Jeu = new Jeu(nbJoueurs);
     }
 
     public void RejoindrePartie(string nomDuJoueur, string identifiant)
@@ -60,10 +63,17 @@ public class GestionnaireJeu : IGestionnaireJeu
 
     public void GererDeconnexion(string idJoueur)
     {
-        var joueurDeconnecte = Jeu?.Joueurs?.FirstOrDefault(j => j.Identifiant == idJoueur);
-        if (Jeu?.Joueurs != null && joueurDeconnecte != null)
+        try
         {
-            Jeu.Joueurs.Remove(joueurDeconnecte);
+            var joueurDeconnecte = Jeu?.Joueurs?.FirstOrDefault(j => j.Identifiant == idJoueur);
+            if (Jeu?.Joueurs != null && joueurDeconnecte != null)
+            {
+                Jeu.Joueurs.Remove(joueurDeconnecte);
+            }
+        }
+        catch (Exception)
+        {
+            // Ignore
         }
     }
 

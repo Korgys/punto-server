@@ -19,7 +19,7 @@ public class JeuHub : Hub
     {
         // Crée le jeu si aucune partie en cours
         var jeu = _gestionnaireJeu.ObtenirJeu();
-        if (jeu == null)
+        if (jeu == null || jeu.EtatJeu == EtatJeu.Termine)
         {
             _gestionnaireJeu.DemarrerUnJeu();
         }
