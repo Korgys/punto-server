@@ -12,4 +12,5 @@ public interface IGestionnaireJeu
     void AssocierJoueur(string nom, string connectionId);
     string ObtenirConnectionId(string nom);
     void GererDeconnexion(string idJoueur);
+    void PasserAuTourSuivant();
 }

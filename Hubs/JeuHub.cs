@@ -248,6 +248,8 @@ public class JeuHub : Hub
         // Notifie les autres joueurs
         await Clients.Others.SendAsync("JoueurDeconnecte", connectionId);
 
+        _gestionnaireJeu.PasserAuTourSuivant();
+
         await base.OnDisconnectedAsync(exception);
     }
 

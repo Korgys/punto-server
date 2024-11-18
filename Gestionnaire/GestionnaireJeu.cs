@@ -483,4 +483,11 @@ public class GestionnaireJeu : IGestionnaireJeu
         Console.ResetColor();
     }
 
+    public void PasserAuTourSuivant()
+    {
+        if (Jeu != null && Jeu.EtatJeu == EtatJeu.EnCours)
+        {
+            PasserAuJoueurSuivant();
+        }
+    }
 }
