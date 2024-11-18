@@ -24,6 +24,26 @@ builder.Services.AddSingleton<IGestionnaireJeu, GestionnaireJeu>();
 
 var app = builder.Build();
 
+// Appel de la méthode `DemarrerUnJeu` lors du démarrage de l'application
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var gestionnaireJeu = scope.ServiceProvider.GetRequiredService<IGestionnaireJeu>();
+
+        try
+        {
+            Console.WriteLine("Démarrage d'une nouvelle partie...");
+            gestionnaireJeu.DemarrerUnJeu();
+            Console.WriteLine("Partie démarrée !");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur lors du démarrage de la partie : {ex.Message}");
+        }
+    }
+});
+
 // Configure les routes pour le Hub SignalR
 app.MapHub<JeuHub>("/punto");
 

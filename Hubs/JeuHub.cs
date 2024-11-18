@@ -15,13 +15,27 @@ public class JeuHub : Hub
         _gestionnaireJeu = gestionnaireJeu;
     }
 
-    public async Task RejoindrePartie(string joueur)
+    public void DemarrerJeu()
     {
         // Crée le jeu si aucune partie en cours
         var jeu = _gestionnaireJeu.ObtenirJeu();
         if (jeu == null || jeu.EtatJeu == EtatJeu.Termine)
         {
             _gestionnaireJeu.DemarrerUnJeu();
+        }
+    }
+
+    public async Task RejoindrePartie(string joueur)
+    {
+        // Crée le jeu si aucune partie en cours
+        var jeu = _gestionnaireJeu.ObtenirJeu();
+        if (jeu == null)
+        {
+            await Clients.All.SendAsync("Erreur", "Pas de partie en cours, démarrez un nouveau jeu.");
+        }
+        else if (jeu.EtatJeu == EtatJeu.Termine)
+        {
+            await Clients.All.SendAsync("Erreur", "Partie terminée, démarrez un nouveau jeu.");
         }
 
         // Permet au joueur de rejoindre la partie

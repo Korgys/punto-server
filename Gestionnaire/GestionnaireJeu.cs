@@ -15,6 +15,7 @@ public class GestionnaireJeu : IGestionnaireJeu
         var nbJoueurs = int.Parse(Console.ReadLine());
 
         Jeu = new Jeu(nbJoueurs);
+        Console.WriteLine($"Nouvelle partie initialisée. En attente de {nbJoueurs} joueurs ...");
     }
 
     public void RejoindrePartie(string nomDuJoueur, string identifiant)
