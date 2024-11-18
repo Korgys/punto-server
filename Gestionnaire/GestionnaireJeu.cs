@@ -259,7 +259,6 @@ public class GestionnaireJeu : IGestionnaireJeu
         {
             try
             {
-                Console.WriteLine($"Début du timer pour {joueur.Nom}. 30 secondes pour jouer.");
                 await Task.Delay(TimeSpan.FromSeconds(_timerInactiviteEnSecondes), cts.Token);
 
                 // Si le délai expire, applique une pénalité
@@ -289,8 +288,7 @@ public class GestionnaireJeu : IGestionnaireJeu
             }
             catch (TaskCanceledException)
             {
-                // Le joueur a joué à temps, on ignore l'annulation
-                Console.WriteLine($"Le timer pour {joueur.Nom} a été annulé car il a joué à temps.");
+                // Le joueur a joué à temps, on ignore l'annulations
             }
             finally
             {

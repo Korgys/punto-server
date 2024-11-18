@@ -31,11 +31,18 @@ public class JeuHub : Hub
         var jeu = _gestionnaireJeu.ObtenirJeu();
         if (jeu == null)
         {
-            await Clients.All.SendAsync("Erreur", "Pas de partie en cours, démarrez un nouveau jeu.");
+            await Clients.Caller.SendAsync("Erreur", "Pas de partie en cours, démarrez un nouveau jeu.");
+            return;
         }
         else if (jeu.EtatJeu == EtatJeu.Termine)
         {
-            await Clients.All.SendAsync("Erreur", "Partie terminée, démarrez un nouveau jeu.");
+            await Clients.Caller.SendAsync("Erreur", "Partie terminée, démarrez un nouveau jeu.");
+            return;
+        }
+        else if (jeu.EtatJeu == EtatJeu.EnCours)
+        {
+            await Clients.Caller.SendAsync("Erreur", "Partie en cours, veuillez patienter");
+            return;
         }
 
         // Gestion des reconnexions de joueurs existants
