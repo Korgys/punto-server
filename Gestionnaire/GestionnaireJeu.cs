@@ -152,6 +152,9 @@ public class GestionnaireJeu : IGestionnaireJeu
 
     public Jeu JouerTuile(string nomDuJoueur, int x, int y, int valeur)
     {
+        // Pour voir la partie se dérouler
+        Thread.Sleep(1000);
+
         var joueur = Jeu.Joueurs.FirstOrDefault(j => j.Nom == nomDuJoueur);
 
         if (joueur != null && PeutJouerTuile(nomDuJoueur, x, y, valeur))
