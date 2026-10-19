@@ -15,20 +15,57 @@ public class JeuHub : Hub
         _gestionnaireJeu = gestionnaireJeu;
     }
 
+    public void DemarrerJeu()
+    {
+        // Crée le jeu si aucune partie en cours
+        var jeu = _gestionnaireJeu.ObtenirJeu();
+        if (jeu == null || jeu.EtatJeu == EtatJeu.Termine)
+        {
+            _gestionnaireJeu.DemarrerUnJeu();
+        }
+    }
+
     public async Task RejoindrePartie(string joueur)
     {
         // Crée le jeu si aucune partie en cours
         var jeu = _gestionnaireJeu.ObtenirJeu();
         if (jeu == null)
         {
-            _gestionnaireJeu.DemarrerUnJeu();
+            await Clients.Caller.SendAsync("Erreur", "Pas de partie en cours, démarrez un nouveau jeu.");
+            return;
+        }
+        else if (jeu.EtatJeu == EtatJeu.Termine)
+        {
+            await Clients.Caller.SendAsync("Erreur", "Partie terminée, démarrez un nouveau jeu.");
+            return;
+        }
+        else if (jeu.EtatJeu == EtatJeu.EnCours)
+        {
+            await Clients.Caller.SendAsync("Erreur", "Partie en cours, veuillez patienter");
+            return;
         }
 
-        // Permet au joueur de rejoindre la partie
-        _gestionnaireJeu.RejoindrePartie(joueur, Context.ConnectionId);
+        // Gestion des reconnexions de joueurs existants
+        var joueurExistant = jeu.Joueurs.FirstOrDefault(j => j.Nom == joueur);
+        if (joueurExistant != null)
+        {
+            // Mise à jour du ConnectionId pour le joueur existant
+            joueurExistant.Identifiant = Context.ConnectionId;
+            _gestionnaireJeu.AssocierJoueur(joueur, Context.ConnectionId);
 
-        // Diffuse que le joueur a rejoint la partie
-        await Clients.All.SendAsync("RejoindrePartie", joueur);
+            Console.WriteLine($"Joueur {joueur} a reconfirmé sa connexion ({Context.ConnectionId}).");
+            await Clients.Caller.SendAsync("Reconnecte", joueur);
+        }
+        else
+        {
+            // Nouveau joueur
+            _gestionnaireJeu.RejoindrePartie(joueur, Context.ConnectionId);
+            _gestionnaireJeu.AssocierJoueur(joueur, Context.ConnectionId);
+
+            // Diffuse que le joueur a rejoint la partie
+            Console.WriteLine($"Nouveau joueur {joueur} ({Context.ConnectionId}) a rejoint la partie !");
+            await Clients.All.SendAsync("RejoindrePartie", joueur);
+        }
 
         // Récupère la variable mise à jour
         jeu = _gestionnaireJeu.ObtenirJeu();
@@ -170,13 +207,19 @@ public class JeuHub : Hub
 
         Console.WriteLine($"Client déconnecté : {connectionId}");
 
-        // Appeler un service qui gère la logique de suppression du joueur
-        _gestionnaireJeu.GererDeconnexion(connectionId);
+        // Marquer le joueur comme déconnecté
+        var joueur = _gestionnaireJeu.ObtenirJeu()?.Joueurs.FirstOrDefault(j => j.Identifiant == connectionId);
+        if (joueur != null)
+        {
+            joueur.Identifiant = null; // Marque la déconnexion
+            Console.WriteLine($"Le joueur {joueur.Nom} est marqué comme déconnecté.");
+        }
 
-        // Notifie les autres clients de la déconnexion si nécessaire
+        // Notifie les autres joueurs
         await Clients.Others.SendAsync("JoueurDeconnecte", connectionId);
 
-        // Appele la méthode de la classe de base
+        _gestionnaireJeu.PasserAuTourSuivant();
+
         await base.OnDisconnectedAsync(exception);
     }
 }
